@@ -1,13 +1,21 @@
 defmodule OneMax do
+  @behaviour Problem
+  alias Types.Chromosome
 
-  genotype = fn -> for _ <- 1..1000, do: Enum.random(0..1) end
+  @impl true
+  def genotype do
+    genes = for _ <- 1..42, do: Enum.random(0..1)
 
-  fitness_function = fn chromosome -> Enum.sum(chromosome) end
+    %Chromosome{genes: genes, size: 42}
+  end
 
-  max_fitness = 1000
+  @impl true
+  def fitness_function(chromosome), do: Enum.sum(chromosome.genes)
 
-  soln = Genetic.run(fitness_function, genotype, max_fitness)
-
-  IO.write("\n")
-  IO.inspect(soln)
+  @impl true
+  def terminate?([best | _]), do: best.fitness == 42
 end
+
+soln = Genetic.run(OneMax)
+IO.write("\n")
+IO.inspect(soln)

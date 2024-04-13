@@ -59,8 +59,8 @@ defmodule Genetic do
 
   def mutation(population, _opts \\ []) do
     Enum.map(population, fn chromosome ->
-      if :rand.uniform() < 0.5 do
-        %Chromosome{chromosome | genes: Enum.shuffle(chromosome)}
+      if :rand.uniform() < 0.05 do
+        %Chromosome{chromosome | genes: Enum.shuffle(chromosome.genes)}
       else
         chromosome
       end
