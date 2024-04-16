@@ -13,7 +13,10 @@ defmodule OneMax do
   def fitness_function(chromosome), do: Enum.sum(chromosome.genes)
 
   @impl true
-  def terminate?(_population, generation), do: generation == 100
+  def terminate?(_population, _generation, temperature), do: temperature < 25
+
+  # @impl true
+  # def terminate?(_population, generation), do: generation == 100
 
   # @impl true
   # def terminate?(population, _generation) do

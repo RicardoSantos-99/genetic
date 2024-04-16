@@ -35,8 +35,6 @@ defmodule Cargo do
 
   @impl true
   def terminate?(_population, generation), do: generation == 100
-  # Enum.max_by(population, &Cargo.fitness_function/1).fitness == 53
-  # end
 end
 
 soln = Genetic.run(Cargo, population_size: 50)
