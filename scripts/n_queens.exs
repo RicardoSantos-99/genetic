@@ -41,7 +41,7 @@ defmodule NQueens do
 end
 
 
-sohl = Genetic.run(NQueens)
+sohl = Genetic.run(NQueens, population_size: 20)
 
 IO.write("\n")
 IO.inspect(sohl)

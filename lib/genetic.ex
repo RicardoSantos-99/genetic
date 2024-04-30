@@ -60,7 +60,9 @@ defmodule Genetic do
   def crossover(population, opts \\ []) do
     crossover_fn = Keyword.get(opts, :crossover_type, &Toolbox.Crossover.order_one_crossover/2)
 
-    Enum.reduce(population, [], fn {p1, p2}, acc ->
+    population
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.reduce([], fn [{p1, p2} | _], acc ->
       {c1, c2} = apply(crossover_fn, [p1, p2])
       [c1, c2 | acc]
     end)

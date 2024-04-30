@@ -23,4 +23,38 @@ defmodule Toolbox.Crossover do
 
     {%Chromosome{genes: c1, size: p1.size}, %Chromosome{genes: c2, size: p2.size}}
   end
+
+  def single_point(p1, p2) do
+    cx_point = :rand.uniform(p1.size)
+    {p1_head, p1_tail} = Enum.split(p1.genes, cx_point)
+    {p2_head, p2_tail} = Enum.split(p2.genes, cx_point)
+
+    {c1, c2} = {p1_head ++ p2_tail, p2_head ++ p1_tail}
+
+    {%Chromosome{genes: c1, size: length(p1.size)}, %Chromosome{genes: c2, size: length(p2.size)}}
+  end
+
+  def uniform(p1, p2, rate) do
+    {c1, c2} =
+      p1.genes
+      |> Enum.zip(p2.genes)
+      |> Enum.map(fn {x, y} ->
+        if :rand.uniform() < rate, do: {x, y}, else: {y, x}
+      end)
+      |> Enum.unzip()
+
+    {%Chromosome{genes: c1, size: length(c1)}, %Chromosome{genes: c2, size: length(c2)}}
+  end
+
+  def whole_arithmetic_crossover(p1, p2, alpha) do
+    {c1, c2} =
+      p1.genes
+      |> Enum.zip(p2.genes)
+      |> Enum.map(fn {x, y} ->
+        {x * alpha + y * (1 - alpha), x * (1 - alpha) + y * alpha}
+      end)
+      |> Enum.unzip()
+
+    {%Chromosome{genes: c1, size: length(c1)}, %Chromosome{genes: c2, size: length(c2)}}
+  end
 end
