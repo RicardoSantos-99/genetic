@@ -24,14 +24,25 @@ defmodule Toolbox.Crossover do
     {%Chromosome{genes: c1, size: p1.size}, %Chromosome{genes: c2, size: p2.size}}
   end
 
-  def single_point(p1, p2) do
-    cx_point = :rand.uniform(p1.size)
-    {p1_head, p1_tail} = Enum.split(p1.genes, cx_point)
-    {p2_head, p2_tail} = Enum.split(p2.genes, cx_point)
+  def single_point([]), do: raise("You must have at least one parent")
 
-    {c1, c2} = {p1_head ++ p2_tail, p2_head ++ p1_tail}
+  def single_point([p1 | []]), do: p1
 
-    {%Chromosome{genes: c1, size: length(p1.size)}, %Chromosome{genes: c2, size: length(p2.size)}}
+  def single_point(parents) do
+    crossover_point = :rand.uniform(hd(parents).size)
+
+    parents
+    |> Enum.chunk_every(2, 1, [hd(parents)])
+    |> Enum.map(&List.to_tuple(&1))
+    |> Enum.reduce(
+      [],
+      fn {p1, p2}, chd ->
+        {front, _} = Enum.split(p1.genes, crossover_point)
+        {_, back} = Enum.split(p2.genes, crossover_point)
+        c = %Chromosome{genes: front ++ back, size: length(p1)}
+        [c | chd]
+      end
+    )
   end
 
   def uniform(p1, p2, rate) do

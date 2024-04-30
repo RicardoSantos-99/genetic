@@ -66,6 +66,23 @@ defmodule Genetic do
       {c1, c2} = apply(crossover_fn, [p1, p2])
       [c1, c2 | acc]
     end)
+    |> Enum.map(&repair_chromosome(&1))
+  end
+
+  def repair_chromosome(chromosome) do
+    genes = MapSet.new(chromosome.genes)
+
+    new_genes = repair_helper(genes, 8)
+    %Chromosome{chromosome | genes: new_genes}
+  end
+
+  def repair_helper(chromosome, k) do
+    if MapSet.size(chromosome) >= k do
+      MapSet.to_list(chromosome)
+    else
+      num = :rand.uniform()
+      repair_helper(MapSet.put(chromosome, num), k)
+    end
   end
 
   def mutation(population, _opts \\ []) do
