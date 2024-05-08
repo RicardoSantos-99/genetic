@@ -1,31 +1,6 @@
 defmodule Genetic do
   alias Types.Chromosome
 
-  def run(problem, opts \\ []) do
-    population = initialize(&problem.genotype/0, opts)
-
-    evolve(population, problem, 0, opts)
-  end
-
-  def evolve(population, problem, generation, opts \\ []) do
-    population = evaluate(population, &problem.fitness_function/1, opts)
-    best = hd(population)
-
-    IO.write("\r Current Best #{best.fitness}")
-
-    if problem.terminate?(population, generation) do
-      best
-    else
-      {parents, leftover} = select(population, opts)
-
-      children = crossover(parents, opts)
-
-      (children ++ leftover)
-      |> mutation(opts)
-      |> evolve(problem, generation + 1, opts)
-    end
-  end
-
   def initialize(genotype, opts \\ []) do
     population_size = Keyword.get(opts, :population_size, 100)
     for _ <- 1..population_size, do: genotype.()
@@ -33,56 +8,43 @@ defmodule Genetic do
 
   def evaluate(population, fitness_function, _opts \\ []) do
     population
-    |> Enum.map(&%Chromosome{&1 | fitness: fitness_function.(&1), age: &1.age + 1})
-    |> Enum.sort_by(& &1.fitness, &>=/2)
+    |> Enum.map(fn chromosome ->
+      fitness = fitness_function.(chromosome)
+      age = chromosome.age + 1
+      %Chromosome{chromosome | fitness: fitness, age: age}
+    end)
+    |> Enum.sort_by(fitness_function, &>=/2)
   end
 
   def select(population, opts \\ []) do
     select_fn = Keyword.get(opts, :selection_type, &Toolbox.Selection.elite/2)
-
-    selection_rate = Keyword.get(opts, :selection_rate, 0.8)
-    n = round(length(population) * selection_rate)
+    select_rate = Keyword.get(opts, :selection_rate, 0.8)
+    n = round(length(population) * select_rate)
     n = if rem(n, 2) == 0, do: n, else: n + 1
 
     parents = apply(select_fn, [population, n])
 
-    leftover =
-      population
-      |> MapSet.new()
-      |> MapSet.difference(MapSet.new(parents))
+    leftover = MapSet.difference(MapSet.new(population), MapSet.new(parents))
 
-    population
-    |> Enum.chunk_every(2)
-    |> Enum.map(&List.to_tuple(&1))
-    |> then(&{&1, MapSet.to_list(leftover)})
+    parents =
+      parents
+      |> Enum.chunk_every(2)
+      |> Enum.map(&List.to_tuple(&1))
+
+    {parents, MapSet.to_list(leftover)}
   end
 
   def crossover(population, opts \\ []) do
-    crossover_fn = Keyword.get(opts, :crossover_type, &Toolbox.Crossover.order_one_crossover/2)
+    crossover_fn = Keyword.get(opts, :crossover_type, &Toolbox.Crossover.single_point/2)
 
-    population
-    |> Enum.chunk_every(2, 1, :discard)
-    |> Enum.reduce([], fn [{p1, p2} | _], acc ->
-      {c1, c2} = apply(crossover_fn, [p1, p2])
-      [c1, c2 | acc]
-    end)
-    |> Enum.map(&repair_chromosome(&1))
-  end
-
-  def repair_chromosome(chromosome) do
-    genes = MapSet.new(chromosome.genes)
-
-    new_genes = repair_helper(genes, 8)
-    %Chromosome{chromosome | genes: new_genes}
-  end
-
-  def repair_helper(chromosome, k) do
-    if MapSet.size(chromosome) >= k do
-      MapSet.to_list(chromosome)
-    else
-      num = :rand.uniform()
-      repair_helper(MapSet.put(chromosome, num), k)
-    end
+    Enum.reduce(
+      population,
+      [],
+      fn {p1, p2}, acc ->
+        {c1, c2} = apply(crossover_fn, [p1, p2])
+        [c1 | [c2 | acc]]
+      end
+    )
   end
 
   def mutation(population, _opts \\ []) do
@@ -93,5 +55,28 @@ defmodule Genetic do
         chromosome
       end
     end)
+  end
+
+  def run(problem, opts \\ []) do
+    population = initialize(&problem.genotype/0)
+
+    evolve(population, problem, 0, opts)
+  end
+
+  def evolve(population, problem, generation, opts \\ []) do
+    population = evaluate(population, &problem.fitness_function/1, opts)
+    best = hd(population)
+    IO.write("\rCurrent best: #{best.fitness}")
+
+    if problem.terminate?(population, generation) do
+      best
+    else
+      {parents, leftover} = select(population, opts)
+      children = crossover(parents, opts)
+
+      (children ++ leftover)
+      |> mutation(opts)
+      |> evolve(problem, generation + 1, opts)
+    end
   end
 end
