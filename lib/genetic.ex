@@ -22,7 +22,9 @@ defmodule Genetic do
     n = round(length(population) * select_rate)
     n = if rem(n, 2) == 0, do: n, else: n + 1
 
-    parents = apply(select_fn, [population, n])
+    parents =
+      select_fn
+      |> apply([population, n])
 
     leftover = MapSet.difference(MapSet.new(population), MapSet.new(parents))
 
@@ -37,8 +39,8 @@ defmodule Genetic do
   def crossover(population, opts \\ []) do
     crossover_fn = Keyword.get(opts, :crossover_type, &Toolbox.Crossover.single_point/2)
 
-    Enum.reduce(
-      population,
+    population
+    |> Enum.reduce(
       [],
       fn {p1, p2}, acc ->
         {c1, c2} = apply(crossover_fn, [p1, p2])
@@ -47,36 +49,47 @@ defmodule Genetic do
     )
   end
 
-  def mutation(population, _opts \\ []) do
-    Enum.map(population, fn chromosome ->
-      if :rand.uniform() < 0.05 do
-        %Chromosome{chromosome | genes: Enum.shuffle(chromosome.genes)}
-      else
-        chromosome
-      end
-    end)
+  def mutation(population, opts \\ []) do
+    mutate_fn = Keyword.get(opts, :mutation_type, &Toolbox.Mutation.scramble/1)
+    rate = Keyword.get(opts, :mutation_rate, 0.05)
+    n = floor(length(population) * rate)
+
+    population
+    |> Enum.take_random(n)
+    |> Enum.map(&apply(mutate_fn, [&1]))
+  end
+
+  def reinsertion(parents, offspring, leftover, opts \\ []) do
+    strategy = Keyword.get(opts, :reinsertion_strategy, &Toolbox.Reinsertion.pure/3)
+    apply(strategy, [parents, offspring, leftover])
   end
 
   def run(problem, opts \\ []) do
     population = initialize(&problem.genotype/0)
 
-    evolve(population, problem, 0, opts)
+    population
+    |> evolve(problem, 0, opts)
   end
 
   def evolve(population, problem, generation, opts \\ []) do
     population = evaluate(population, &problem.fitness_function/1, opts)
     best = hd(population)
-    IO.write("\rCurrent best: #{best.fitness}")
+
+    fit_str =
+      best.fitness
+      |> :erlang.float_to_binary(decimals: 4)
+
+    IO.write("\rCurrent best: #{fit_str}\tGeneration: #{generation}")
 
     if problem.terminate?(population, generation) do
       best
     else
       {parents, leftover} = select(population, opts)
       children = crossover(parents, opts)
-
-      (children ++ leftover)
-      |> mutation(opts)
-      |> evolve(problem, generation + 1, opts)
+      mutants = mutation(population, opts)
+      offspring = children ++ mutants
+      new_population = reinsertion(parents, offspring, leftover, opts)
+      evolve(new_population, problem, generation + 1, opts)
     end
   end
 end
