@@ -4,18 +4,18 @@ defmodule Genetic do
   def initialize(genotype, opts \\ []) do
     population_size = Keyword.get(opts, :population_size, 100)
 
-    for(_ <- 1..population_size, do: genotype.())
-    |> tap(&Utilities.Genealogy.add_chromosomes/1)
+    for _ <- 1..population_size do
+      {:ok, chromosome} = Chromosome.start_link(genotype.())
+      chromosome
+    end
   end
 
   def evaluate(population, fitness_function, _opts \\ []) do
     population
-    |> Enum.map(fn chromosome ->
-      fitness = fitness_function.(chromosome)
-      age = chromosome.age + 1
-      %Chromosome{chromosome | fitness: fitness, age: age}
-    end)
-    |> Enum.sort_by(fitness_function, &>=/2)
+    |> Enum.map(&Chromosome.eval(&1, fitness_function))
+
+    population
+    |> Enum.sort_by(fn c -> Chromosome.get_fitness(c) end, &>=/2)
   end
 
   def select(population, opts \\ []) do
@@ -51,6 +51,8 @@ defmodule Genetic do
         [c1 | [c2 | acc]]
       end
     )
+
+    # Enum.map(population, fn {p1, p2} -> apply(crossover_fn, [p1, p2]) end)
   end
 
   def mutation(population, opts \\ []) do
@@ -72,6 +74,12 @@ defmodule Genetic do
     apply(strategy, [parents, offspring, leftover])
   end
 
+  def pmap(collection, func) do
+    collection
+    |> Enum.map(&Task.async(fn -> func.(&1) end))
+    |> Enum.map(&Task.await/1)
+  end
+
   def run(problem, opts \\ []) do
     population = initialize(&problem.genotype/0)
 
@@ -81,15 +89,15 @@ defmodule Genetic do
 
   def evolve(population, problem, generation, opts \\ []) do
     population = evaluate(population, &problem.fitness_function/1, opts)
-
-    statistics(population, generation, opts)
     best = hd(population)
+    statistics(population, generation, opts)
+    IO.write("\rCurrent best: #{best.fitness}\tGeneration: #{generation}\n")
 
-    fit_str =
-      best.fitness
-      |> :erlang.float_to_binary(decimals: 4)
+    # fit_str =
+    #   best.fitness
+    #   |> :erlang.float_to_binary(decimals: 4)
 
-    IO.write("\rCurrent best: #{fit_str}\tGeneration: #{generation}")
+    # IO.write("\rCurrent best: #{fit_str}\tGeneration: #{generation}")
 
     if problem.terminate?(population, generation) do
       best
