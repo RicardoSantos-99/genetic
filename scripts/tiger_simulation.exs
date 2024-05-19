@@ -44,23 +44,41 @@ end
 
 tiger =
   Genetic.run(TigerSimulation,
-    population_size: 20,
+    population_size: 5,
     selection_rate: 0.9,
-    mutation_rate: 0.1,
-    statistics: %{average_tiger: &TigerSimulation.average_tiger/1}
+    mutation_rate: 0.1
   )
 
 genealogy = Utilities.Genealogy.get_tree()
+{:ok, dot} = Graph.Serializers.DOT.serialize(genealogy)
+{:ok, dotfile} = File.open("tiger_simulation.dot", [:write])
+:ok = IO.write(dotfile, dot)
+:ok = File.close(dotfile)
+
 IO.inspect(Graph.vertices(genealogy))
-{_, zero_gen_stats} = Utilities.Statistics.lookup(0)
-{_, five_hundred_gen_stats} = Utilities.Statistics.lookup(500)
-{_, onethousand_gen_stats} = Utilities.Statistics.lookup(1000)
 
-IO.write("\n")
+stats =
+  :ets.tab2list(:statistics)
+  |> Enum.map(fn {gen, stats} -> [gen, stats.mean_fitness] end)
 
-IO.inspect(zero_gen_stats.average_tiger)
-IO.inspect(five_hundred_gen_stats.average_tiger)
-IO.inspect(onethousand_gen_stats.average_tiger)
+{:ok, cmd} =
+  Gnuplot.plot(
+    [
+      [:set, :title, "mean fitness versus generation"],
+      [:plot, "-", :with, :points]
+    ],
+    [stats]
+  )
 
-IO.write("\n")
-IO.inspect(tiger)
+# {_, zero_gen_stats} = Utilities.Statistics.lookup(0)
+# {_, five_hundred_gen_stats} = Utilities.Statistics.lookup(500)
+# {_, onethousand_gen_stats} = Utilities.Statistics.lookup(1000)
+
+# IO.write("\n")
+
+# IO.inspect(zero_gen_stats.average_tiger)
+# IO.inspect(five_hundred_gen_stats.average_tiger)
+# IO.inspect(onethousand_gen_stats.average_tiger)
+
+# IO.write("\n")
+# IO.inspect(tiger)
