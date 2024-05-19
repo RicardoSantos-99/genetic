@@ -22,7 +22,7 @@ defmodule Genetic.MixProject do
       version: "0.1.0",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
-      compilers: [:nif] ++ Mix.compilers(),
+      # compilers: [:nif] ++ Mix.compilers(),
       deps: deps()
     ]
   end
@@ -41,7 +41,11 @@ defmodule Genetic.MixProject do
       {:libgraph, "~> 0.13"},
       {:gnuplot, "~> 1.19"},
       {:benchee, "~> 1.0.1"},
-      {:exprof, "~> 0.2.0"}
+      {:exprof, "~> 0.2.0"},
+      {:stream_data, "~> 0.5", only: :test},
+      {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev], runtime: false}
+
       # {:alex, "~> 0.3.1"}
     ]
   end

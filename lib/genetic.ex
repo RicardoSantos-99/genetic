@@ -1,10 +1,10 @@
 defmodule Genetic do
   alias Types.Chromosome
-  @on_load :load_nif
+  # @on_load :load_nif
 
-  def load_nif do
-    :erlang.load_nif(~c"./genetic", 0)
-  end
+  # def load_nif do
+  #   :erlang.load_nif(~c"./genetic", 0)
+  # end
 
   def initialize(genotype, opts \\ []) do
     population_size = Keyword.get(opts, :population_size, 100)
@@ -17,10 +17,12 @@ defmodule Genetic do
 
   def evaluate(population, fitness_function, _opts \\ []) do
     population
-    |> Enum.map(&Chromosome.eval(&1, fitness_function))
-
-    population
-    |> Enum.sort_by(fn c -> Chromosome.get_fitness(c) end, &>=/2)
+    |> Enum.map(fn chromosome ->
+      fitness = fitness_function.(chromosome)
+      age = chromosome.age + 1
+      %Chromosome{chromosome | fitness: fitness, age: age}
+    end)
+    |> Enum.sort_by(fitness_function, &>=/2)
   end
 
   def select(population, opts \\ []) do
@@ -131,5 +133,5 @@ defmodule Genetic do
     |> then(&Utilities.Statistics.insert(generation, &1))
   end
 
-  def xor96, do: raise("NIF xor96/0 not implemented.")
+  # def xor96, do: raise("NIF xor96/0 not implemented.")
 end
