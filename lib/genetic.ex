@@ -1,5 +1,10 @@
 defmodule Genetic do
   alias Types.Chromosome
+  @on_load :load_nif
+
+  def load_nif do
+    :erlang.load_nif(~c"./genetic", 0)
+  end
 
   def initialize(genotype, opts \\ []) do
     population_size = Keyword.get(opts, :population_size, 100)
@@ -125,4 +130,6 @@ defmodule Genetic do
     end)
     |> then(&Utilities.Statistics.insert(generation, &1))
   end
+
+  def xor96, do: raise("NIF xor96/0 not implemented.")
 end

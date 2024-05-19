@@ -1,3 +1,18 @@
+defmodule Mix.Tasks.Compile.Nif do
+  use Mix.Task.Compiler
+
+  def run(_args) do
+    {result, _errcode} =
+      System.cmd(
+        "gcc",
+        ["-fpic", "-shared", "-o", "genetic.so", "src/genetic.c"],
+        stderr_to_stdout: true
+      )
+
+    IO.puts(result)
+  end
+end
+
 defmodule Genetic.MixProject do
   use Mix.Project
 
@@ -7,6 +22,7 @@ defmodule Genetic.MixProject do
       version: "0.1.0",
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
+      compilers: [:nif] ++ Mix.compilers(),
       deps: deps()
     ]
   end
